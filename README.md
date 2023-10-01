@@ -1,7 +1,7 @@
 # tf-stream 
 ## Time-Frequency Analysis for Streaming Signals
 
-tf-stream is a simple and practical Python toolbox for time-frequency analysis on streaming signals. Signals can be decompozed through various techniques into an approximation of their spectral content instantaneously in time. This problem is relevant to processing complicated real-world signals, such as neural recordings, sound, financial data, etc. However, doing so under streaming conditions, i.e., in real-time, can be a technical headache. There are many possible solutions; some are better than others, given a certain application context. This repository catalogues solutions developed in research into a practical toolbox that can be conjointly used with the other great signal-processing resources already available in Python.
+tf-stream is a simple and practical Python toolbox for time-frequency analysis on streaming signals. Signals can be decomposed through various techniques into an approximation of their spectral content instantaneously in time. This problem is relevant to processing complicated real-world signals, such as neural recordings, sound, financial data, etc. However, doing so under streaming conditions, i.e., in real-time, can be a technical headache. There are many possible solutions; some are better than others, given a certain application context. This repository catalogues solutions developed in research into a practical toolbox that can be conjointly used with the other great signal-processing resources already available in Python.
 
 The following guiding principles are adopted:
 * Simple functions to construct and operate time-frequency filter banks using `scipy.signal` and Matlab's syntax conventions.
@@ -17,7 +17,7 @@ This is a pre-alpha version with a limited number of features and workflow examp
 The planned content is the following:
 * (Pre-alpha) Filter-bank and epoching tools for time-frequency analysis.
 * (Pre-alpha) Fourier and wavelet transforms.
-* (In development) Phasor estimation (including hilbert transformers).
+* (In development) Phasor estimation (including Hilbert transformers).
 * (Planned) Baseline deviation and signal whitening.
 * (Planned) Recursive and discrete wavelet transforms.
 * (Planned) Parametric auto-regressive estimators.
@@ -25,6 +25,13 @@ The planned content is the following:
 * (Planned) Noise reduction strategies.
 
 Interested in contributing? Please contact Thomas Martineau at tlc.martineau@gmail.com.
+
+## Dependencies
+* Python 3.10.9 (or later)
+* Numpy 1.23.5 
+* Pandas 1.5.3 
+* Scipy 1.10.0
+* Matplotlib 3.7.0
 
 ## License
 
@@ -44,9 +51,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Introduction
 
-This userguide assumes that the reader has some elementary understanding of the `scipy.signal` library and of signal processing: discrete-time signals, filter design, frequency response, infinite-response (IIR) vs. finite-response (FIR)... etc.
+This user guide assumes that the reader has some elementary understanding of the `scipy.signal` library and of signal processing: discrete-time signals, filter design, frequency response, infinite-response (IIR) vs. finite-response (FIR)... etc.
 
-Time-frequency analysis is useful to decompose multi-modal and non-stationary signals. We can define a mode as a carrier signal whose amplitude (AM) and frequency (FM) are modulated in time (at a lower rate than the base frequency) such that: $$x(t)=\sum_{i=0}^{N-1} A_i(t)sin(\phi_i(t))$$ where $A_i(t)$ is the amplitude and $\phi_i(t)$ function of a mode [1]. The instantaneous frequency function of the mode is given by $f_i(t)=\frac{1}{2\pi}\frac{d\phi_{i}}{dt}$ [1]. Although this model does not describe all types of real-world signals (e.g. random signals), it is sufficiently broad to derive different problem classes which can in turn be used for demonstration and testing.
+Time-frequency analysis is useful to decompose multi-modal and non-stationary signals. We can define a mode as a carrier signal whose amplitude (AM) and frequency (FM) are modulated in time (at a lower rate than the base frequency) such that: $$x(t)=\sum_{i=0}^{N-1} A_i(t)sin(\phi_i(t))$$ where $A_i(t)$ is the amplitude and $\phi_i(t)$ function of a mode [1]. The instantaneous frequency function of the mode is given by $f_i(t)=\frac{1}{2\pi}\frac{d\phi_{i}}{dt}$ [1]. Although this model does not describe all types of real-world signals (e.g. random signals), it is sufficiently broad to derive different problem classes, which can, in turn, be used for demonstration and testing.
 
 This guide will discuss:
 * How to construct simple filter banks to estimate $A_i(t)$ components.
@@ -78,7 +85,7 @@ b, a = get_filter_bank(6, bands, _filter=butter, fs=fs)
 plot_freqz_bank(b, a, fs=fs)
 
 ```
-`get_filter_bank` builds the filter arrayz `(b, a)` using `bands` and a filter backend function from `scipy.signal`. A list of frequencies will partition the spectra using bandpass filters and a pair of low-highpass filters for the spectra edges. Passing a list of frequency pairs inside a tuple will generate a customized partition. 
+`get_filter_bank` builds the filter arrays `(b, a)` using `bands` and a filter backend function from `scipy.signal`. A list of frequencies will partition the spectra using bandpass filters and a pair of low-highpass filters for the spectra edges. Passing a list of frequency pairs inside a tuple will generate a customized partition. 
 
 `plot_freqz_bank` wraps around `scipy.signal.freqz` to plot the characteristics of every filter in the bank. Each $f_{i}$ is located within the passband of its respective filter.
 
@@ -120,7 +127,7 @@ plot_am_test(
 
 $A_i(t)$ is estimated using the root-mean-square operator and applied on a rolling window or epoch. `epoch_view` takes in two arguments: $R$, which defines the stride between windows; $n$, which extends the epoch length $L$ by specifying the number of strides which overlap between epochs such that $L=R(n+1)$ ($n=0$ means there is not overlap). Standard `numpy` operations can then be directly applied to the array.
 
-The code can be easily modified to function under streaming conditions (i.e. online). In a high-level Python application, data will typically be received in packets (chunks, blocks etc.) through some socket (e.g. a serial port using the `pyserial` or a custom device driver). A chunk of data contains multiple time samples. In practice, the chunk size dictates when the filters can be updated. It is thus often easier to set $R$ to match the size of that chunk:
+The code can be easily modified to function under streaming conditions (i.e. online). In a high-level Python application, data will typically be received in packets (chunks, blocks, etc.) through some socket (e.g. a serial port using the `pyserial` or a custom device driver). A chunk of data contains multiple time samples. In practice, the chunk size dictates when the filters can be updated. It is thus often easier to set $R$ to match the size of that chunk:
 
 ```python
 # %% Streaming.
@@ -156,17 +163,17 @@ for chunk in utils.split_evenly(x.sum(axis=0), R):
 # assemble the final signal.
 y = np.asarray(y)
 ```
-In summary, the resulting approximations of $A_i(t)$ are relatively good, provided that the latency and decimation levels are acceptable for the desired application. Again, this approach is efficient, straightforward and most likely applicable to a broad range of signals. `tfstream` provides simple functions to fast-track implementation whether the data is processed offline or online from a streaming source. The key assumption is that the frequency function behaviour of a mode is well-known and sufficiently stable within a given band. Lastly, to reduce noise sources present within the carrier or in $A_i(t)$ it is advisable to have longer epochs, thus allowing for more latency. Otherwise, more advance techniques, such as post-processing smoothers, need to be employed.
+In summary, the resulting approximations of $A_i(t)$ are relatively good, provided that the latency and decimation levels are acceptable for the desired application. Again, this approach is efficient, straightforward and most likely applicable to a broad range of signals. `tfstream` provides simple functions to fast-track implementation whether the data is processed offline or online from a streaming source. The key assumption is that the frequency function behaviour of a mode is well-known and sufficiently stable within a given band. Lastly, to reduce noise sources present within the carrier or in $A_i(t)$, it is advisable to have longer epochs, thus allowing for more latency. Otherwise, more advance techniques, such as post-processing smoothers, need to be employed.
 
 ## Fourier Transforms
 
-Let us now consider that $\phi_i(t)$ follows a more complicated and non-band limited, behaviour. For example, in a simple chirp signal, the instantaneous frequency follows a steady ramp such that $f_i(t)=mt+p$. A straightforward way to track $\phi_i(t)$ is the following: 
+Let us now consider that $\phi_i(t)$ follows a more complicated and non-band limited behaviour. For example, in a simple chirp signal, the instantaneous frequency follows a steady ramp such that $f_i(t)=mt+p$. A straightforward way to track $\phi_i(t)$ is the following: 
 $$l[k] = \underset{l=0,...,N-1}{\mathrm{argmax}}(|y[k,l]|)$$ where $k$ is the time index, $l$ the filter bank index, and $y$ the output signal from the filter bank. The full spectrum needs to be sampled through a set of bases from which the modes can be estimated. The finer the spanning, the better the approximation.  Building narrow real-value bandpass filters is often sub-optimal. IIR filters tend to become unstable and FIR overly long.
 
 A more robust approach is to construct instead a narrow complex-value filter, starting with a short window function $w_n$. The peak response of the window discrete-time Fourier transform $W(j\omega)$ can be shifted from the central frequency across the spectra through the following identity: $$w[n]e^{j\omega_{0} n} \leftrightarrow W(j(\omega-\omega_o))$$ A bank of such shifted complex filters be constructed to sample the signal spectra at regularly spaced frequency points.
 
 ### STFT
-The Short-time Fourier transform (STFT) can be interpreted as a complex filter bank [2]. The transform is however typically computed using the FFT algorithm after signal epoching, which is far more efficient than convolving large complex FIR filters. Following this approach, `tfstream.fourier.stft` combines `tfstream.epoch` and `scipy.signal.fft` for both efficient streaming (by passing the `zi` variable) and offline deployment. 
+The Short-time Fourier transform (STFT) can be interpreted as a complex filter bank [2]. The transform is however typically computed using the FFT algorithm after signal epoching, which is far more efficient than convolving large complex FIR filters. Following this approach, `tfstream.fourier.stft` combines `tfstream.epoch` and `scipy.signal.fft` for both efficient streaming (by specifying the `zi` variable) and offline deployment. 
 
 ```python
 # %% STFT
@@ -194,9 +201,9 @@ for (R, n), ax, legend, cmb in zip(
     
     ax.set_title('Window Length {} (ms)'.format(R*(n+1)/fs*1000)) 
 ```
-`plot_chirp_test` generates automatically a chirp test signal and compiles a diagnostic plot. Different settings for the `stft` functions were selected and tested. `utils.dB` applies the Decibel scale to the transform complex-norm. `scipy.signal.window` function names and parameters can be directly pasted to `stft`.
+`plot_chirp_test` automatically generates a chirp test signal and compiles a diagnostic plot. Different settings for the `stft` functions were selected and tested. `utils.dB` applies the Decibel scale to the transform complex-norm. `scipy.signal.window` function names and parameters can be directly pasted to `stft`.
 
-A drawback of using the FFT is that the frequency points are constrained by the epoch length. Shorter epochs have poorer frequency resolution which leads to a gross step-like estimate. Longer epochs have poorer time resolution which leads to a lagging and noisy estimate. Adjusting the poch length to match the characteristic of $\phi_i(t)$ is therefore important. 
+A drawback of using the FFT is that the frequency points are constrained by the epoch length. Shorter epochs have poorer frequency resolution, which leads to a gross step-like estimate. Longer epochs have poorer time resolution, which leads to a lagging and noisy estimate. Adjusting the poch length to match the characteristic of $\phi_i(t)$ is therefore important. 
 
 <figure>
   <img src="./examples/figures/stft_test.png">
@@ -260,7 +267,7 @@ ax2.set_title(r'$\alpha$-SWIFT')
 ## Continuous Wavelet Transform
 Much can be said about wavelet theory. `pywavelet` remains the library of reference in Python. The incentive here to is provide wavelet tools usable under streaming conditions.
 
-Put very briefly, like the STFT or SWIFT, wavelet kernels are filter-banks. Unlike Fourier bases, a wavelet's shape dilates or shrinks depending on its fundamental frequency. In practical terms, this means that wavelet filters span the spectral space logarithmically instead of linearly. Frequencies are geometrically placed along the spectra such that: $$f[k]=\frac{f_s}{2^{\frac{k-1}{M}}} $$ with M commonly referred to as the number of wavelets per octave [4]. 
+Put very briefly, like the STFT or SWIFT, wavelet kernels are filter banks. Unlike Fourier bases, a wavelet's shape dilates or shrinks depending on its fundamental frequency. In practical terms, this means that wavelet filters span the spectral space logarithmically instead of linearly. Frequencies are geometrically placed along the spectra such that: $$f[k]=\frac{f_s}{2^{\frac{k-1}{M}}} $$ with M commonly referred to as the number of wavelets per octave [4]. 
 
 The continuous wavelet transform (CWT) is thus efficient at capturing both fast-broadband and slow-narrowband signals. These properties suit many classes of real-world signals. Additionally, the shape of the wavelet may have other desirable effects (such as shape-matching a signal or control over the time/frequency resolution tradeoff).
 
@@ -308,7 +315,7 @@ ax2.legend(f, title='Frequency (Hz)')
 ax2.grid()
 ```
 
-`utils.freq_dyadic_scale` will generate logarithmically spaced frequencies, between `fs` and `fmin`. As it will be shown, the CWT requires long FIR kernels. Like with the STFT, it is computationally preferable to use sparser overlapping epochs rather than a full convolution (although there exists an offline FFT trick to accelerate that specific operation). `(R, n)` need to be passed to `tfstream.wavelets.morlet` to match the epoch length to the kernel size.
+`utils.freq_dyadic_scale` will generate logarithmically spaced frequencies between `fs` and `fmin`. As it will be shown, the CWT requires long FIR kernels. Like with the STFT, it is computationally preferable to use sparser overlapping epochs rather than a full convolution (although there exists an offline FFT trick to accelerate that specific operation). `(R, n)` need to be passed to `tfstream.wavelets.morlet` to match the epoch length to the kernel size.
 
 <figure>
     <img src="./examples/figures/morlet_bank.svg">
@@ -351,7 +358,7 @@ The `cwt` function operates similarly to `stft` with the exception that the kern
 
 This example also shows the influence of the cycle number. It controls the damping of the wavelet oscillations. Tuning is typically required depending on the application.
 
-The practical limitations of the CWT are associated with kernel building and convolution. Kernels are long and expensive to compute, so long stride epoching is recommended. Their frequency response function is distorted at the spectral extremities: very slow wavelets are truncated at the epoch edges, leading to leakage and a shallow/distorted central lobe;  very fast wavelets, are excessively padded, resulting in more zero-points than necessary and thus ill-conditioning of the filter function. Pre-conditioning the signal in a or several bands of interest (using band-passing and resampling), thus maybe necessary. Other solutions to these problems include the recursive wavelets and the discrete wavelet transforms.
+The practical limitations of the CWT are associated with kernel building and convolution. Kernels are long and expensive to compute, so long-stride epoching is recommended. Their frequency response function is distorted at the spectral extremities: very slow wavelets are truncated at the epoch edges, leading to leakage and a shallow/distorted central lobe;  very fast wavelets are excessively padded, resulting in more zero-points than necessary and thus ill-conditioning of the filter function. Pre-conditioning the signal in a or several bands of interest (using band-passing and resampling), thus may be necessary. Other solutions to these problems include the recursive wavelets, and the discrete wavelet transforms.
 
 ## References
 
